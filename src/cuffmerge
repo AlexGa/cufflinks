@@ -29,7 +29,7 @@ Usage:
 
 Options:
     -h/--help                               Prints the help message and exits
-    -o                     <output_dir>     Directory where merged assembly will be written  [ default: ./merged_asm  ]
+    --output-dir           <output_dir>     Directory where merged assembly will be written  [ default: ./merged_asm  ]
     -g/--ref-gtf                            An optional "reference" annotation GTF.
     -s/--ref-sequence      <seq_dir>/<seq_fasta> Genomic DNA sequences for the reference.
     --min-isoform-fraction <0-1.0>          Discard isoforms with abundance below this       [ default:           0.05 ]
@@ -37,7 +37,7 @@ Options:
     --keep-tmp                              Keep all intermediate files during merge
 Extended Options:
     -A/--small-anchor-fraction   percent read overhang taken as 'suspiciously small'      [ default:     0.0 ]
-    --min-frags-per-transfrag    minimum number of fragments needed for new transfrags    [ default:      10 ]
+    --min-frags-per-transfrag    minimum number of fragments needed for new transfrags    [ default:       0 ]
     --overhang-tolerance         number of terminal exon bp to tolerate in introns        [ default:       1 ]
     --overlap-radius             maximum gap size to fill between transfrags (in bp)      [ default:       1 ]
     --3-overhang-tolerance       overhang allowed on 3' end when merging with reference   [ default:       1 ]
@@ -83,7 +83,7 @@ class TestParams:
         self.fasta = None
         self.small_anchor_fraction = 0.0
         self.min_isoform_frac = 0.05
-        self.min_frags_per_transfrag = 10
+        self.min_frags_per_transfrag = 0
         self.overhang_tolerance = 1
         self.overlap_radius = 1
         self.overhang_3 = 1
@@ -94,7 +94,7 @@ class TestParams:
     def parse_options(self, argv):
         try:
             opts, args = getopt.getopt(argv[1:],
-                                       "hvp:o:g:M:s:q:F:A:f:t:r:O:",
+                                        "hvp:o:g:M:s:q:F:A:f:t:r:O:",
                                        ["version",
                                         "help",
                                         "ref-sequence=",
@@ -103,7 +103,7 @@ class TestParams:
                                         "num-threads=",
                                         "keep-tmp",
                                         "min-isoform-fraction=",
-                                        "small-anchor-fraction"
+                                        "small-anchor-fraction="
                                         "min-frags-per-transfrag=",
                                         "overhang-tolerance=",
                                         "overlap-radius=",
@@ -140,7 +140,7 @@ class TestParams:
                 self.overhang_3 = value
             if option in ("-A","--small-anchor-fraction"):
                 self.small_anchor_fraction = float(value)
-            if option in ("-o", "--output-dir"):
+            if option in ("-o","--output-dir"):
                 output_dir = value + "/"
                 logging_dir = output_dir + "logs/"
                 tmp_dir = output_dir + "tmp/"
@@ -186,6 +186,7 @@ def tmp_name(prefix):
         os.mkdir(tmp_root)
     return tmp_root + prefix + os.tmpnam().split('/')[-1]
 #cufflinks(output_dir, merged_sam_filename, params.min_isoform_frac, params.small_anchor_fraction,  params.min_frags_per_transfrag, params.overhang_tolerance, params.overlap_radius, params.overhang_3, params.ref_gtf)
+#cufflinks -o cuff_merge_noRef/ -F 0.05 --min-frags-per-transfrag 10 --overhang-tolerance 1 --overlap-radius cuff_merge_noRef --3-overhang-tolerance cuff_merge_noRef -A 0.0 -q --library-type=transfrags --no-5-extend -p 10 cuff_merge_noRef/tmp/mergeSam_fileXsAu1w
 def cufflinks(out_dir,
               sam_file,
               min_isoform_frac,
@@ -315,7 +316,6 @@ def convert_gtf_to_sam(gtf_filename_list):
     sam_input_filenames = []
     for line in gtf_filename_list:
         try:
-            print line
             sam_out = gtf_to_sam(line)
             sam_input_filenames.append(sam_out)
         except OSError, o:
@@ -547,7 +547,7 @@ def main(argv=None):
         print >> sys.stderr, "[%s] Beginning transcriptome assembly merge" % (right_now())
         print >> sys.stderr, "-------------------------------------------"
         print >> sys.stderr
-
+        
         start_time = datetime.now()
         prepare_output_dir()
 
@@ -562,6 +562,8 @@ def main(argv=None):
         else:
             print >> sys.stderr, "Warning: no reference GTF provided!"
 
+        print output_dir, params.min_isoform_frac, params.small_anchor_fraction,  params.min_frags_per_transfrag, params.overhang_tolerance, params.overlap_radius, params.overhang_3, params.ref_gtf
+        
         # Check that all the primary assemblies are accessible before starting the time consuming stuff
         gtf_input_files = test_input_files(transfrag_list_file)
 
