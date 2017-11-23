@@ -274,7 +274,7 @@ def gtf_to_sam(gtf_filename):
         print >> run_log, " ".join(cmd)
         ret = subprocess.call(cmd)
         if ret != 0:
-            print >> sys.stderr, fail_str, "Error: could not execute gtf_to_sam"
+            print >> sys.stderr, fail_str, "Error: could not execute gtf_to_sam (",gtf_filename,")"
             exit(1)
     # gtf_to_sam not found
     except OSError, o:
