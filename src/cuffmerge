@@ -131,13 +131,13 @@ class TestParams:
             if option in ("-F", "--min-isoform-fraction"):
                 self.min_isoform_frac = float(value)
             if option in ("--min-frags-per-transfrag"):
-                self.min_frags_per_transfrag = int(value)
+                self.min_frags_per_transfrag = value
             if option in ("--overhang-tolerance"):
-                self.overhang_tolerance = int(value)
+                self.overhang_tolerance = value
             if option in ("--overlap-radius"):
-                self.overlap_radius = int(value)
+                self.overlap_radius = value
             if option in ("--3-overhang-tolerance"):
-                self.overhang_3 = int(value)
+                self.overhang_3 = value
             if option in ("-A","--small-anchor-fraction"):
                 self.small_anchor_fraction = float(value)
             if option in ("-o", "--output-dir"):
