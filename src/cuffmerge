@@ -33,8 +33,14 @@ Options:
     -g/--ref-gtf                            An optional "reference" annotation GTF.
     -s/--ref-sequence      <seq_dir>/<seq_fasta> Genomic DNA sequences for the reference.
     --min-isoform-fraction <0-1.0>          Discard isoforms with abundance below this       [ default:           0.05 ]
-    -p/--num-threads       <int>            Use this many threads to merge assemblies.       [ default:             1  ]
+    -p/--num-threads       <int>            Use this many threads to merge assemblies.       [ default:              1 ]
     --keep-tmp                              Keep all intermediate files during merge
+Extended Options:
+    -A/--small-anchor-fraction   percent read overhang taken as 'suspiciously small'      [ default:     0.0 ]
+    --min-frags-per-transfrag    minimum number of fragments needed for new transfrags    [ default:      10 ]
+    --overhang-tolerance         number of terminal exon bp to tolerate in introns        [ default:     200 ]
+    --overlap-radius             maximum gap size to fill between transfrags (in bp)      [ default:       0 ]
+    --3-overhang-tolerance       overhang allowed on 3' end when merging with reference   [ default:       0 ]
 '''
 
 output_dir = "./merged_asm/"
@@ -75,7 +81,12 @@ class TestParams:
                                                False)           # keep_tmp
         self.ref_gtf = None
         self.fasta = None
+        self.small_anchor_fraction = 0.0
         self.min_isoform_frac = 0.05
+        self.min_frags_per_transfrag = 10
+        self.overhang_tolerance = 200
+        self.overlap_radius = 0
+        self.overhang_3 = 0
 
     def check(self):
         self.system_params.check()
@@ -83,7 +94,7 @@ class TestParams:
     def parse_options(self, argv):
         try:
             opts, args = getopt.getopt(argv[1:],
-                                       "hvp:o:g:M:s:q:F:",
+                                       "hvp:o:g:M:s:q:F:A:f:t:r:O:",
                                        ["version",
                                         "help",
                                         "ref-sequence=",
@@ -91,7 +102,12 @@ class TestParams:
                                         "output-dir=",
                                         "num-threads=",
                                         "keep-tmp",
-                                        "min-isoform-fraction="])
+                                        "min-isoform-fraction=",
+                                        "small-anchor-fraction"
+                                        "min-frags-per-transfrag=",
+                                        "overhang-tolerance=",
+                                        "overlap-radius=",
+                                        "3-overhang-tolerance="])
         except getopt.error, msg:
             raise Usage(msg)
 
@@ -114,6 +130,16 @@ class TestParams:
                 self.fasta = value
             if option in ("-F", "--min-isoform-fraction"):
                 self.min_isoform_frac = float(value)
+            if option in ("--min-frags-per-transfrag"):
+                self.min_frags_per_transfrag = int(value)
+            if option in ("--overhang-tolerance"):
+                self.overhang_tolerance = int(value)
+            if option in ("--overlap-radius"):
+                self.overlap_radius = int(value)
+            if option in ("--3-overhang-tolerance"):
+                self.overhang_3 = int(value)
+            if option in ("-A","--small-anchor-fraction"):
+                self.small_anchor_fraction = float(value)
             if option in ("-o", "--output-dir"):
                 output_dir = value + "/"
                 logging_dir = output_dir + "logs/"
@@ -159,12 +185,17 @@ def tmp_name(prefix):
     else:
         os.mkdir(tmp_root)
     return tmp_root + prefix + os.tmpnam().split('/')[-1]
-
+#cufflinks(output_dir, merged_sam_filename, params.min_isoform_frac, params.small_anchor_fraction,  params.min_frags_per_transfrag, params.overhang_tolerance, params.overlap_radius, params.overhang_3, params.ref_gtf)
 def cufflinks(out_dir,
               sam_file,
               min_isoform_frac,
+              small_anchor_fraction,
+              min_frags_per_transfrag,
+              overhang_tolerance,
+              overlap_radius,
+              overhang_3,
               gtf_file=None,
-              extra_opts=["-q", "--overhang-tolerance", "200", "--library-type=transfrags",  "-A","0.0", "--min-frags-per-transfrag", "0", "--no-5-extend"],
+              extra_opts=["-q", "--library-type=transfrags", "--no-5-extend"],
               lsf=False,
               curr_queue=None):
     if gtf_file != None:
@@ -177,7 +208,7 @@ def cufflinks(out_dir,
     if out_dir != None and out_dir != "":
         cmd.extend(["-o", out_dir])
 
-    cmd.extend(["-F", str(min_isoform_frac)])
+    cmd.extend(["-F", str(min_isoform_frac), "--min-frags-per-transfrag", str(min_frags_per_transfrag), "--overhang-tolerance", str(overhang_tolerance), "--overlap_radius", str(overlap_radius), "--3-overhang-tolerance", str(overhang_3), "-A", str(small_anchor_fraction)])
 
     if gtf_file != None:
         cmd.extend(["-g", gtf_file])
@@ -551,7 +582,8 @@ def main(argv=None):
             # Merge the primary assembly SAMs into a single input SAM file
             merged_sam_filename = merge_sam_inputs(sam_input_files, header)
             # Run cufflinks on the primary assembly transfrags to generate a meta-assembly
-            cufflinks(output_dir, merged_sam_filename, params.min_isoform_frac, params.ref_gtf)
+            #cufflinks(output_dir, merged_sam_filename, params.min_isoform_frac, params.ref_gtf)
+            cufflinks(output_dir, merged_sam_filename, params.min_isoform_frac, params.small_anchor_fraction,  params.min_frags_per_transfrag, params.overhang_tolerance, params.overlap_radius, params.overhang_3, params.ref_gtf)
             compare_meta_asm_against_ref(params.ref_gtf, params.fasta, output_dir+"/transcripts.gtf")
         #Meta Cuffcompare option:
         else:
